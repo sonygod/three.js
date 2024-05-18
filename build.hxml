@@ -1,0 +1,7 @@
+-cp three.js/src
+-cp src
+-D analyzer-optimize
+-main Main
+
+--js bin/main.js
+-D no-deprecation-warnings
