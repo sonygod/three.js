@@ -1,0 +1,1 @@
+class SystemStateComponent extends Component {}

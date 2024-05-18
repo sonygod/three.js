@@ -1,0 +1,1 @@
+class ColorKeyframeTrack extends KeyframeTrack {}

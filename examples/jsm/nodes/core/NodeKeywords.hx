@@ -1,0 +1,52 @@
+package three.js.examples.jm.nodes.core;
+
+class NodeKeywords {
+    public var keywords:Array<String>;
+    public var nodes:Map<String,Dynamic>;
+    public var keywordsCallback:Map<String,Dynamic->Void>;
+
+    public function new() {
+        keywords = [];
+        nodes = new Map<String, Dynamic>();
+        keywordsCallback = new Map<String, Dynamic->Void>();
+    }
+
+    public function getNode(name:String):Dynamic {
+        var node:Dynamic = nodes.get(name);
+        if (node == null && keywordsCallback.exists(name)) {
+            node = keywordsCallback.get(name)(name);
+            nodes.set(name, node);
+        }
+        return node;
+    }
+
+    public function addKeyword(name:String, callback:Dynamic->Void):NodeKeywords {
+        keywords.push(name);
+        keywordsCallback.set(name, callback);
+        return this;
+    }
+
+    public function parse(code:String):Array<Dynamic> {
+        var keywordNames:Array<String> = keywords;
+        var regExp = new EReg("\\b" + keywordNames.join("\\b|\\b") + "\\b", "g");
+        var codeKeywords:Array<String> = code.match(regExp);
+        var keywordNodes:Array<Dynamic> = [];
+
+        if (codeKeywords != null) {
+            for (keyword in codeKeywords) {
+                var node:Dynamic = getNode(keyword);
+                if (node != null && keywordNodes.indexOf(node) == -1) {
+                    keywordNodes.push(node);
+                }
+            }
+        }
+        return keywordNodes;
+    }
+
+    public function include(builder:Dynamic, code:String):Void {
+        var keywordNodes:Array<Dynamic> = parse(code);
+        for (keywordNode in keywordNodes) {
+            keywordNode.build(builder);
+        }
+    }
+}

@@ -1,0 +1,17 @@
+class WebGLArrayRenderTarget extends WebGLRenderTarget {
+
+	constructor( width = 1, height = 1, depth = 1, options = {} ) {
+
+		super( width, height, options );
+
+		this.isWebGLArrayRenderTarget = true;
+
+		this.depth = depth;
+
+		this.texture = new DataArrayTexture( null, width, height, depth );
+
+		this.texture.isRenderTargetTexture = true;
+
+	}
+
+}

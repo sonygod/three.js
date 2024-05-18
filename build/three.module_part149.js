@@ -1,0 +1,1 @@
+class VectorKeyframeTrack extends KeyframeTrack {}
