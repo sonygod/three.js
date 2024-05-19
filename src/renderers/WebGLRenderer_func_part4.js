@@ -1,359 +1,498 @@
-		this.renderBufferDirect = function ( camera, scene, geometry, material, object, group ) {
+		function renderObject( object, scene, camera, geometry, material, group ) {
 
-			if ( scene === null ) scene = _emptyScene; // renderBufferDirect second parameter used to be fog (could be null)
+			object.onBeforeRender( _this, scene, camera, geometry, material, group );
 
-			const frontFaceCW = ( object.isMesh && object.matrixWorld.determinant() < 0 );
+			object.modelViewMatrix.multiplyMatrices( camera.matrixWorldInverse, object.matrixWorld );
+			object.normalMatrix.getNormalMatrix( object.modelViewMatrix );
 
-			const program = setProgram( camera, scene, geometry, material, object );
-
-			state.setMaterial( material, frontFaceCW );
-
-			//
-
-			let index = geometry.index;
-			let rangeFactor = 1;
-
-			if ( material.wireframe === true ) {
-
-				index = geometries.getWireframeAttribute( geometry );
-
-				if ( index === undefined ) return;
-
-				rangeFactor = 2;
-
-			}
-
-			//
-
-			const drawRange = geometry.drawRange;
-			const position = geometry.attributes.position;
-
-			let drawStart = drawRange.start * rangeFactor;
-			let drawEnd = ( drawRange.start + drawRange.count ) * rangeFactor;
-
-			if ( group !== null ) {
-
-				drawStart = Math.max( drawStart, group.start * rangeFactor );
-				drawEnd = Math.min( drawEnd, ( group.start + group.count ) * rangeFactor );
-
-			}
-
-			if ( index !== null ) {
-
-				drawStart = Math.max( drawStart, 0 );
-				drawEnd = Math.min( drawEnd, index.count );
-
-			} else if ( position !== undefined && position !== null ) {
-
-				drawStart = Math.max( drawStart, 0 );
-				drawEnd = Math.min( drawEnd, position.count );
-
-			}
-
-			const drawCount = drawEnd - drawStart;
-
-			if ( drawCount < 0 || drawCount === Infinity ) return;
-
-			//
-
-			bindingStates.setup( object, material, program, geometry, index );
-
-			let attribute;
-			let renderer = bufferRenderer;
-
-			if ( index !== null ) {
-
-				attribute = attributes.get( index );
-
-				renderer = indexedBufferRenderer;
-				renderer.setIndex( attribute );
-
-			}
-
-			//
-
-			if ( object.isMesh ) {
-
-				if ( material.wireframe === true ) {
-
-					state.setLineWidth( material.wireframeLinewidth * getTargetPixelRatio() );
-					renderer.setMode( _gl.LINES );
-
-				} else {
-
-					renderer.setMode( _gl.TRIANGLES );
-
-				}
-
-			} else if ( object.isLine ) {
-
-				let lineWidth = material.linewidth;
-
-				if ( lineWidth === undefined ) lineWidth = 1; // Not using Line*Material
-
-				state.setLineWidth( lineWidth * getTargetPixelRatio() );
-
-				if ( object.isLineSegments ) {
-
-					renderer.setMode( _gl.LINES );
-
-				} else if ( object.isLineLoop ) {
-
-					renderer.setMode( _gl.LINE_LOOP );
-
-				} else {
-
-					renderer.setMode( _gl.LINE_STRIP );
-
-				}
-
-			} else if ( object.isPoints ) {
-
-				renderer.setMode( _gl.POINTS );
-
-			} else if ( object.isSprite ) {
-
-				renderer.setMode( _gl.TRIANGLES );
-
-			}
-
-			if ( object.isBatchedMesh ) {
-
-				if ( object._multiDrawInstances !== null ) {
-
-					renderer.renderMultiDrawInstances( object._multiDrawStarts, object._multiDrawCounts, object._multiDrawCount, object._multiDrawInstances );
-
-				} else {
-
-					renderer.renderMultiDraw( object._multiDrawStarts, object._multiDrawCounts, object._multiDrawCount );
-
-				}
-
-			} else if ( object.isInstancedMesh ) {
-
-				renderer.renderInstances( drawStart, drawCount, object.count );
-
-			} else if ( geometry.isInstancedBufferGeometry ) {
-
-				const maxInstanceCount = geometry._maxInstanceCount !== undefined ? geometry._maxInstanceCount : Infinity;
-				const instanceCount = Math.min( geometry.instanceCount, maxInstanceCount );
-
-				renderer.renderInstances( drawStart, drawCount, instanceCount );
-
-			} else {
-
-				renderer.render( drawStart, drawCount );
-
-			}
-
-		};
-
-		// Compile
-
-		function prepareMaterial( material, scene, object ) {
+			material.onBeforeRender( _this, scene, camera, geometry, object, group );
 
 			if ( material.transparent === true && material.side === DoubleSide && material.forceSinglePass === false ) {
 
 				material.side = BackSide;
 				material.needsUpdate = true;
-				getProgram( material, scene, object );
+				_this.renderBufferDirect( camera, scene, geometry, material, object, group );
 
 				material.side = FrontSide;
 				material.needsUpdate = true;
-				getProgram( material, scene, object );
+				_this.renderBufferDirect( camera, scene, geometry, material, object, group );
 
 				material.side = DoubleSide;
 
 			} else {
 
-				getProgram( material, scene, object );
+				_this.renderBufferDirect( camera, scene, geometry, material, object, group );
 
 			}
 
+			object.onAfterRender( _this, scene, camera, geometry, material, group );
+
 		}
 
-		this.compile = function ( scene, camera, targetScene = null ) {
+		function getProgram( material, scene, object ) {
 
-			if ( targetScene === null ) targetScene = scene;
+			if ( scene.isScene !== true ) scene = _emptyScene; // scene could be a Mesh, Line, Points, ...
 
-			currentRenderState = renderStates.get( targetScene );
-			currentRenderState.init( camera );
+			const materialProperties = properties.get( material );
 
-			renderStateStack.push( currentRenderState );
+			const lights = currentRenderState.state.lights;
+			const shadowsArray = currentRenderState.state.shadowsArray;
 
-			// gather lights from both the target scene and the new object that will be added to the scene.
+			const lightsStateVersion = lights.state.version;
 
-			targetScene.traverseVisible( function ( object ) {
+			const parameters = programCache.getParameters( material, lights.state, shadowsArray, scene, object );
+			const programCacheKey = programCache.getProgramCacheKey( parameters );
 
-				if ( object.isLight && object.layers.test( camera.layers ) ) {
+			let programs = materialProperties.programs;
 
-					currentRenderState.pushLight( object );
+			// always update environment and fog - changing these trigger an getProgram call, but it's possible that the program doesn't change
 
-					if ( object.castShadow ) {
+			materialProperties.environment = material.isMeshStandardMaterial ? scene.environment : null;
+			materialProperties.fog = scene.fog;
+			materialProperties.envMap = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( material.envMap || materialProperties.environment );
+			materialProperties.envMapRotation = ( materialProperties.environment !== null && material.envMap === null ) ? scene.environmentRotation : material.envMapRotation;
 
-						currentRenderState.pushShadow( object );
+			if ( programs === undefined ) {
 
-					}
+				// new material
 
-				}
+				material.addEventListener( 'dispose', onMaterialDispose );
 
-			} );
-
-			if ( scene !== targetScene ) {
-
-				scene.traverseVisible( function ( object ) {
-
-					if ( object.isLight && object.layers.test( camera.layers ) ) {
-
-						currentRenderState.pushLight( object );
-
-						if ( object.castShadow ) {
-
-							currentRenderState.pushShadow( object );
-
-						}
-
-					}
-
-				} );
+				programs = new Map();
+				materialProperties.programs = programs;
 
 			}
 
-			currentRenderState.setupLights( _this._useLegacyLights );
+			let program = programs.get( programCacheKey );
 
-			// Only initialize materials in the new scene, not the targetScene.
+			if ( program !== undefined ) {
 
-			const materials = new Set();
+				// early out if program and light state is identical
 
-			scene.traverse( function ( object ) {
+				if ( materialProperties.currentProgram === program && materialProperties.lightsStateVersion === lightsStateVersion ) {
 
-				const material = object.material;
+					updateCommonMaterialProperties( material, parameters );
 
-				if ( material ) {
-
-					if ( Array.isArray( material ) ) {
-
-						for ( let i = 0; i < material.length; i ++ ) {
-
-							const material2 = material[ i ];
-
-							prepareMaterial( material2, targetScene, object );
-							materials.add( material2 );
-
-						}
-
-					} else {
-
-						prepareMaterial( material, targetScene, object );
-						materials.add( material );
-
-					}
+					return program;
 
 				}
 
-			} );
+			} else {
 
-			renderStateStack.pop();
-			currentRenderState = null;
+				parameters.uniforms = programCache.getUniforms( material );
 
-			return materials;
+				material.onBuild( object, parameters, _this );
 
-		};
+				material.onBeforeCompile( parameters, _this );
 
-		// compileAsync
+				program = programCache.acquireProgram( parameters, programCacheKey );
+				programs.set( programCacheKey, program );
 
-		this.compileAsync = function ( scene, camera, targetScene = null ) {
+				materialProperties.uniforms = parameters.uniforms;
 
-			const materials = this.compile( scene, camera, targetScene );
+			}
 
-			// Wait for all the materials in the new object to indicate that they're
-			// ready to be used before resolving the promise.
+			const uniforms = materialProperties.uniforms;
 
-			return new Promise( ( resolve ) => {
+			if ( ( ! material.isShaderMaterial && ! material.isRawShaderMaterial ) || material.clipping === true ) {
 
-				function checkMaterialsReady() {
+				uniforms.clippingPlanes = clipping.uniform;
 
-					materials.forEach( function ( material ) {
+			}
 
-						const materialProperties = properties.get( material );
-						const program = materialProperties.currentProgram;
+			updateCommonMaterialProperties( material, parameters );
 
-						if ( program.isReady() ) {
+			// store the light setup it was created for
 
-							// remove any programs that report they're ready to use from the list
-							materials.delete( material );
+			materialProperties.needsLights = materialNeedsLights( material );
+			materialProperties.lightsStateVersion = lightsStateVersion;
 
-						}
+			if ( materialProperties.needsLights ) {
 
-					} );
+				// wire up the material to this renderer's lighting state
 
-					// once the list of compiling materials is empty, call the callback
+				uniforms.ambientLightColor.value = lights.state.ambient;
+				uniforms.lightProbe.value = lights.state.probe;
+				uniforms.directionalLights.value = lights.state.directional;
+				uniforms.directionalLightShadows.value = lights.state.directionalShadow;
+				uniforms.spotLights.value = lights.state.spot;
+				uniforms.spotLightShadows.value = lights.state.spotShadow;
+				uniforms.rectAreaLights.value = lights.state.rectArea;
+				uniforms.ltc_1.value = lights.state.rectAreaLTC1;
+				uniforms.ltc_2.value = lights.state.rectAreaLTC2;
+				uniforms.pointLights.value = lights.state.point;
+				uniforms.pointLightShadows.value = lights.state.pointShadow;
+				uniforms.hemisphereLights.value = lights.state.hemi;
 
-					if ( materials.size === 0 ) {
+				uniforms.directionalShadowMap.value = lights.state.directionalShadowMap;
+				uniforms.directionalShadowMatrix.value = lights.state.directionalShadowMatrix;
+				uniforms.spotShadowMap.value = lights.state.spotShadowMap;
+				uniforms.spotLightMatrix.value = lights.state.spotLightMatrix;
+				uniforms.spotLightMap.value = lights.state.spotLightMap;
+				uniforms.pointShadowMap.value = lights.state.pointShadowMap;
+				uniforms.pointShadowMatrix.value = lights.state.pointShadowMatrix;
+				// TODO (abelnation): add area lights shadow info to uniforms
 
-						resolve( scene );
-						return;
+			}
 
-					}
+			materialProperties.currentProgram = program;
+			materialProperties.uniformsList = null;
 
-					// if some materials are still not ready, wait a bit and check again
+			return program;
 
-					setTimeout( checkMaterialsReady, 10 );
+		}
+
+		function getUniformList( materialProperties ) {
+
+			if ( materialProperties.uniformsList === null ) {
+
+				const progUniforms = materialProperties.currentProgram.getUniforms();
+				materialProperties.uniformsList = WebGLUniforms.seqWithValue( progUniforms.seq, materialProperties.uniforms );
+
+			}
+
+			return materialProperties.uniformsList;
+
+		}
+
+		function updateCommonMaterialProperties( material, parameters ) {
+
+			const materialProperties = properties.get( material );
+
+			materialProperties.outputColorSpace = parameters.outputColorSpace;
+			materialProperties.batching = parameters.batching;
+			materialProperties.batchingColor = parameters.batchingColor;
+			materialProperties.instancing = parameters.instancing;
+			materialProperties.instancingColor = parameters.instancingColor;
+			materialProperties.instancingMorph = parameters.instancingMorph;
+			materialProperties.skinning = parameters.skinning;
+			materialProperties.morphTargets = parameters.morphTargets;
+			materialProperties.morphNormals = parameters.morphNormals;
+			materialProperties.morphColors = parameters.morphColors;
+			materialProperties.morphTargetsCount = parameters.morphTargetsCount;
+			materialProperties.numClippingPlanes = parameters.numClippingPlanes;
+			materialProperties.numIntersection = parameters.numClipIntersection;
+			materialProperties.vertexAlphas = parameters.vertexAlphas;
+			materialProperties.vertexTangents = parameters.vertexTangents;
+			materialProperties.toneMapping = parameters.toneMapping;
+
+		}
+
+		function setProgram( camera, scene, geometry, material, object ) {
+
+			if ( scene.isScene !== true ) scene = _emptyScene; // scene could be a Mesh, Line, Points, ...
+
+			textures.resetTextureUnits();
+
+			const fog = scene.fog;
+			const environment = material.isMeshStandardMaterial ? scene.environment : null;
+			const colorSpace = ( _currentRenderTarget === null ) ? _this.outputColorSpace : ( _currentRenderTarget.isXRRenderTarget === true ? _currentRenderTarget.texture.colorSpace : LinearSRGBColorSpace );
+			const envMap = ( material.isMeshStandardMaterial ? cubeuvmaps : cubemaps ).get( material.envMap || environment );
+			const vertexAlphas = material.vertexColors === true && !! geometry.attributes.color && geometry.attributes.color.itemSize === 4;
+			const vertexTangents = !! geometry.attributes.tangent && ( !! material.normalMap || material.anisotropy > 0 );
+			const morphTargets = !! geometry.morphAttributes.position;
+			const morphNormals = !! geometry.morphAttributes.normal;
+			const morphColors = !! geometry.morphAttributes.color;
+
+			let toneMapping = NoToneMapping;
+
+			if ( material.toneMapped ) {
+
+				if ( _currentRenderTarget === null || _currentRenderTarget.isXRRenderTarget === true ) {
+
+					toneMapping = _this.toneMapping;
 
 				}
 
-				if ( extensions.get( 'KHR_parallel_shader_compile' ) !== null ) {
+			}
 
-					// If we can check the compilation status of the materials without
-					// blocking then do so right away.
+			const morphAttribute = geometry.morphAttributes.position || geometry.morphAttributes.normal || geometry.morphAttributes.color;
+			const morphTargetsCount = ( morphAttribute !== undefined ) ? morphAttribute.length : 0;
 
-					checkMaterialsReady();
+			const materialProperties = properties.get( material );
+			const lights = currentRenderState.state.lights;
 
-				} else {
+			if ( _clippingEnabled === true ) {
 
-					// Otherwise start by waiting a bit to give the materials we just
-					// initialized a chance to finish.
+				if ( _localClippingEnabled === true || camera !== _currentCamera ) {
 
-					setTimeout( checkMaterialsReady, 10 );
+					const useCache =
+						camera === _currentCamera &&
+						material.id === _currentMaterialId;
+
+					// we might want to call this function with some ClippingGroup
+					// object instead of the material, once it becomes feasible
+					// (#8465, #8379)
+					clipping.setState( material, camera, useCache );
 
 				}
 
-			} );
+			}
 
-		};
+			//
 
-		// Animation Loop
+			let needsProgramChange = false;
 
-		let onAnimationFrameCallback = null;
+			if ( material.version === materialProperties.__version ) {
 
-		function onAnimationFrame( time ) {
+				if ( materialProperties.needsLights && ( materialProperties.lightsStateVersion !== lights.state.version ) ) {
 
-			if ( onAnimationFrameCallback ) onAnimationFrameCallback( time );
+					needsProgramChange = true;
 
-		}
+				} else if ( materialProperties.outputColorSpace !== colorSpace ) {
 
-		function onXRSessionStart() {
+					needsProgramChange = true;
 
-			animation.stop();
+				} else if ( object.isBatchedMesh && materialProperties.batching === false ) {
 
-		}
+					needsProgramChange = true;
 
-		function onXRSessionEnd() {
+				} else if ( ! object.isBatchedMesh && materialProperties.batching === true ) {
 
-			animation.start();
+					needsProgramChange = true;
 
-		}
+				} else if ( object.isBatchedMesh && materialProperties.batchingColor === true && object.colorTexture === null ) {
 
-		const animation = new WebGLAnimation();
-		animation.setAnimationLoop( onAnimationFrame );
+					needsProgramChange = true;
 
-		if ( typeof self !== 'undefined' ) animation.setContext( self );
+				} else if ( object.isBatchedMesh && materialProperties.batchingColor === false && object.colorTexture !== null ) {
 
-		this.setAnimationLoop = function ( callback ) {
+					needsProgramChange = true;
 
-			onAnimationFrameCallback = callback;
-			xr.setAnimationLoop( callback );
+				} else if ( object.isInstancedMesh && materialProperties.instancing === false ) {
 
-			( callback === null ) ? animation.stop() : animation.start();
+					needsProgramChange = true;
 
-		};
+				} else if ( ! object.isInstancedMesh && materialProperties.instancing === true ) {
+
+					needsProgramChange = true;
+
+				} else if ( object.isSkinnedMesh && materialProperties.skinning === false ) {
+
+					needsProgramChange = true;
+
+				} else if ( ! object.isSkinnedMesh && materialProperties.skinning === true ) {
+
+					needsProgramChange = true;
+
+				} else if ( object.isInstancedMesh && materialProperties.instancingColor === true && object.instanceColor === null ) {
+
+					needsProgramChange = true;
+
+				} else if ( object.isInstancedMesh && materialProperties.instancingColor === false && object.instanceColor !== null ) {
+
+					needsProgramChange = true;
+
+				} else if ( object.isInstancedMesh && materialProperties.instancingMorph === true && object.morphTexture === null ) {
+
+					needsProgramChange = true;
+
+				} else if ( object.isInstancedMesh && materialProperties.instancingMorph === false && object.morphTexture !== null ) {
+
+					needsProgramChange = true;
+
+				} else if ( materialProperties.envMap !== envMap ) {
+
+					needsProgramChange = true;
+
+				} else if ( material.fog === true && materialProperties.fog !== fog ) {
+
+					needsProgramChange = true;
+
+				} else if ( materialProperties.numClippingPlanes !== undefined &&
+					( materialProperties.numClippingPlanes !== clipping.numPlanes ||
+					materialProperties.numIntersection !== clipping.numIntersection ) ) {
+
+					needsProgramChange = true;
+
+				} else if ( materialProperties.vertexAlphas !== vertexAlphas ) {
+
+					needsProgramChange = true;
+
+				} else if ( materialProperties.vertexTangents !== vertexTangents ) {
+
+					needsProgramChange = true;
+
+				} else if ( materialProperties.morphTargets !== morphTargets ) {
+
+					needsProgramChange = true;
+
+				} else if ( materialProperties.morphNormals !== morphNormals ) {
+
+					needsProgramChange = true;
+
+				} else if ( materialProperties.morphColors !== morphColors ) {
+
+					needsProgramChange = true;
+
+				} else if ( materialProperties.toneMapping !== toneMapping ) {
+
+					needsProgramChange = true;
+
+				} else if ( materialProperties.morphTargetsCount !== morphTargetsCount ) {
+
+					needsProgramChange = true;
+
+				}
+
+			} else {
+
+				needsProgramChange = true;
+				materialProperties.__version = material.version;
+
+			}
+
+			//
+
+			let program = materialProperties.currentProgram;
+
+			if ( needsProgramChange === true ) {
+
+				program = getProgram( material, scene, object );
+
+			}
+
+			let refreshProgram = false;
+			let refreshMaterial = false;
+			let refreshLights = false;
+
+			const p_uniforms = program.getUniforms(),
+				m_uniforms = materialProperties.uniforms;
+
+			if ( state.useProgram( program.program ) ) {
+
+				refreshProgram = true;
+				refreshMaterial = true;
+				refreshLights = true;
+
+			}
+
+			if ( material.id !== _currentMaterialId ) {
+
+				_currentMaterialId = material.id;
+
+				refreshMaterial = true;
+
+			}
+
+			if ( refreshProgram || _currentCamera !== camera ) {
+
+				// common camera uniforms
+
+				p_uniforms.setValue( _gl, 'projectionMatrix', camera.projectionMatrix );
+				p_uniforms.setValue( _gl, 'viewMatrix', camera.matrixWorldInverse );
+
+				const uCamPos = p_uniforms.map.cameraPosition;
+
+				if ( uCamPos !== undefined ) {
+
+					uCamPos.setValue( _gl, _vector3.setFromMatrixPosition( camera.matrixWorld ) );
+
+				}
+
+				if ( capabilities.logarithmicDepthBuffer ) {
+
+					p_uniforms.setValue( _gl, 'logDepthBufFC',
+						2.0 / ( Math.log( camera.far + 1.0 ) / Math.LN2 ) );
+
+				}
+
+				// consider moving isOrthographic to UniformLib and WebGLMaterials, see https://github.com/mrdoob/three.js/pull/26467#issuecomment-1645185067
+
+				if ( material.isMeshPhongMaterial ||
+					material.isMeshToonMaterial ||
+					material.isMeshLambertMaterial ||
+					material.isMeshBasicMaterial ||
+					material.isMeshStandardMaterial ||
+					material.isShaderMaterial ) {
+
+					p_uniforms.setValue( _gl, 'isOrthographic', camera.isOrthographicCamera === true );
+
+				}
+
+				if ( _currentCamera !== camera ) {
+
+					_currentCamera = camera;
+
+					// lighting uniforms depend on the camera so enforce an update
+					// now, in case this material supports lights - or later, when
+					// the next material that does gets activated:
+
+					refreshMaterial = true;		// set to true on material change
+					refreshLights = true;		// remains set until update done
+
+				}
+
+			}
+
+			// skinning and morph target uniforms must be set even if material didn't change
+			// auto-setting of texture unit for bone and morph texture must go before other textures
+			// otherwise textures used for skinning and morphing can take over texture units reserved for other material textures
+
+			if ( object.isSkinnedMesh ) {
+
+				p_uniforms.setOptional( _gl, object, 'bindMatrix' );
+				p_uniforms.setOptional( _gl, object, 'bindMatrixInverse' );
+
+				const skeleton = object.skeleton;
+
+				if ( skeleton ) {
+
+					if ( skeleton.boneTexture === null ) skeleton.computeBoneTexture();
+
+					p_uniforms.setValue( _gl, 'boneTexture', skeleton.boneTexture, textures );
+
+				}
+
+			}
+
+			if ( object.isBatchedMesh ) {
+
+				p_uniforms.setOptional( _gl, object, 'batchingTexture' );
+				p_uniforms.setValue( _gl, 'batchingTexture', object._matricesTexture, textures );
+
+				p_uniforms.setOptional( _gl, object, 'batchingColorTexture' );
+				if ( object._colorsTexture !== null ) {
+
+					p_uniforms.setValue( _gl, 'batchingColorTexture', object._colorsTexture, textures );
+
+				}
+
+			}
+
+			const morphAttributes = geometry.morphAttributes;
+
+			if ( morphAttributes.position !== undefined || morphAttributes.normal !== undefined || ( morphAttributes.color !== undefined ) ) {
+
+				morphtargets.update( object, geometry, program );
+
+			}
+
+			if ( refreshMaterial || materialProperties.receiveShadow !== object.receiveShadow ) {
+
+				materialProperties.receiveShadow = object.receiveShadow;
+				p_uniforms.setValue( _gl, 'receiveShadow', object.receiveShadow );
+
+			}
+
+			// https://github.com/mrdoob/three.js/pull/24467#issuecomment-1209031512
+
+			if ( material.isMeshGouraudMaterial && material.envMap !== null ) {
+
+				m_uniforms.envMap.value = envMap;
+
+				m_uniforms.flipEnvMap.value = ( envMap.isCubeTexture && envMap.isRenderTargetTexture === false ) ? - 1 : 1;
+
+			}
+
+			if ( material.isMeshStandardMaterial && material.envMap === null && scene.environment !== null ) {
+
+				m_uniforms.envMapIntensity.value = scene.environmentIntensity;
+
+			}
+
+			if ( refreshMaterial ) {
+
+				p_uniforms.setValue( _gl, 'toneMappingExposure', _this.toneMappingExposure );
+
+				if ( materialProperties.needsLights ) {

@@ -1,10 +1,77 @@
+import {
+	UVMapping,
+	CubeReflectionMapping,
+	CubeRefractionMapping,
+	EquirectangularReflectionMapping,
+	EquirectangularRefractionMapping,
+	CubeUVReflectionMapping,
+
+	RepeatWrapping,
+	ClampToEdgeWrapping,
+	MirroredRepeatWrapping,
+
+	NearestFilter,
+	NearestMipmapNearestFilter,
+	NearestMipmapLinearFilter,
+	LinearFilter,
+	LinearMipmapNearestFilter,
+	LinearMipmapLinearFilter
+} from '../constants.js';
+import { InstancedBufferAttribute } from '../core/InstancedBufferAttribute.js';
+import { Color } from '../math/Color.js';
+import { Object3D } from '../core/Object3D.js';
+import { Group } from '../objects/Group.js';
+import { InstancedMesh } from '../objects/InstancedMesh.js';
+import { BatchedMesh } from '../objects/BatchedMesh.js';
+import { Sprite } from '../objects/Sprite.js';
+import { Points } from '../objects/Points.js';
+import { Line } from '../objects/Line.js';
+import { LineLoop } from '../objects/LineLoop.js';
+import { LineSegments } from '../objects/LineSegments.js';
+import { LOD } from '../objects/LOD.js';
+import { Mesh } from '../objects/Mesh.js';
+import { SkinnedMesh } from '../objects/SkinnedMesh.js';
+import { Bone } from '../objects/Bone.js';
+import { Skeleton } from '../objects/Skeleton.js';
+import { Shape } from '../extras/core/Shape.js';
+import { Fog } from '../scenes/Fog.js';
+import { FogExp2 } from '../scenes/FogExp2.js';
+import { HemisphereLight } from '../lights/HemisphereLight.js';
+import { SpotLight } from '../lights/SpotLight.js';
+import { PointLight } from '../lights/PointLight.js';
+import { DirectionalLight } from '../lights/DirectionalLight.js';
+import { AmbientLight } from '../lights/AmbientLight.js';
+import { RectAreaLight } from '../lights/RectAreaLight.js';
+import { LightProbe } from '../lights/LightProbe.js';
+import { OrthographicCamera } from '../cameras/OrthographicCamera.js';
+import { PerspectiveCamera } from '../cameras/PerspectiveCamera.js';
+import { Scene } from '../scenes/Scene.js';
+import { CubeTexture } from '../textures/CubeTexture.js';
+import { Texture } from '../textures/Texture.js';
+import { Source } from '../textures/Source.js';
+import { DataTexture } from '../textures/DataTexture.js';
+import { ImageLoader } from './ImageLoader.js';
+import { LoadingManager } from './LoadingManager.js';
+import { AnimationClip } from '../animation/AnimationClip.js';
+import { MaterialLoader } from './MaterialLoader.js';
+import { LoaderUtils } from './LoaderUtils.js';
+import { BufferGeometryLoader } from './BufferGeometryLoader.js';
+import { Loader } from './Loader.js';
+import { FileLoader } from './FileLoader.js';
+import * as Geometries from '../geometries/Geometries.js';
+import { getTypedArray } from '../utils.js';
+import { Box3 } from '../math/Box3.js';
+import { Sphere } from '../math/Sphere.js';
+
+
+class ObjectLoader extends Loader {
+
 	constructor( manager ) {
 
 		super( manager );
 
 	}
-
-	load( url, onLoad, onProgress, onError ) {
+load( url, onLoad, onProgress, onError ) {
 
 		const scope = this;
 
@@ -49,8 +116,7 @@
 		}, onProgress, onError );
 
 	}
-
-	async loadAsync( url, onProgress ) {
+async loadAsync( url, onProgress ) {
 
 		const scope = this;
 
@@ -77,8 +143,7 @@
 		return await scope.parseAsync( json );
 
 	}
-
-	parse( json, onLoad ) {
+parse( json, onLoad ) {
 
 		const animations = this.parseAnimations( json.animations );
 		const shapes = this.parseShapes( json.shapes );
@@ -122,8 +187,7 @@
 		return object;
 
 	}
-
-	async parseAsync( json ) {
+async parseAsync( json ) {
 
 		const animations = this.parseAnimations( json.animations );
 		const shapes = this.parseShapes( json.shapes );
@@ -142,8 +206,7 @@
 		return object;
 
 	}
-
-	parseShapes( json ) {
+parseShapes( json ) {
 
 		const shapes = {};
 
@@ -162,8 +225,7 @@
 		return shapes;
 
 	}
-
-	parseSkeletons( json, object ) {
+parseSkeletons( json, object ) {
 
 		const skeletons = {};
 		const bones = {};
@@ -193,8 +255,7 @@
 		return skeletons;
 
 	}
-
-	parseGeometries( json, shapes ) {
+parseGeometries( json, shapes ) {
 
 		const geometries = {};
 
@@ -243,8 +304,7 @@
 		return geometries;
 
 	}
-
-	parseMaterials( json, textures ) {
+parseMaterials( json, textures ) {
 
 		const cache = {}; // MultiMaterial
 		const materials = {};
@@ -273,8 +333,7 @@
 		return materials;
 
 	}
-
-	parseAnimations( json ) {
+parseAnimations( json ) {
 
 		const animations = {};
 
@@ -295,8 +354,7 @@
 		return animations;
 
 	}
-
-	parseImages( json, onLoad ) {
+parseImages( json, onLoad ) {
 
 		const scope = this;
 		const images = {};
@@ -317,3 +375,97 @@
 				scope.manager.itemEnd( url );
 
 			} );
+
+		}
+
+		function deserializeImage( image ) {
+
+			if ( typeof image === 'string' ) {
+
+				const url = image;
+
+				const path = /^(\/\/)|([a-z]+:(\/\/)?)/i.test( url ) ? url : scope.resourcePath + url;
+
+				return loadImage( path );
+
+			} else {
+
+				if ( image.data ) {
+
+					return {
+						data: getTypedArray( image.type, image.data ),
+						width: image.width,
+						height: image.height
+					};
+
+				} else {
+
+					return null;
+
+				}
+
+			}
+
+		}
+
+		if ( json !== undefined && json.length > 0 ) {
+
+			const manager = new LoadingManager( onLoad );
+
+			loader = new ImageLoader( manager );
+			loader.setCrossOrigin( this.crossOrigin );
+
+			for ( let i = 0, il = json.length; i < il; i ++ ) {
+
+				const image = json[ i ];
+				const url = image.url;
+
+				if ( Array.isArray( url ) ) {
+
+					// load array of images e.g CubeTexture
+
+					const imageArray = [];
+
+					for ( let j = 0, jl = url.length; j < jl; j ++ ) {
+
+						const currentUrl = url[ j ];
+
+						const deserializedImage = deserializeImage( currentUrl );
+
+						if ( deserializedImage !== null ) {
+
+							if ( deserializedImage instanceof HTMLImageElement ) {
+
+								imageArray.push( deserializedImage );
+
+							} else {
+
+								// special case: handle array of data textures for cube textures
+
+								imageArray.push( new DataTexture( deserializedImage.data, deserializedImage.width, deserializedImage.height ) );
+
+							}
+
+						}
+
+					}
+
+					images[ image.uuid ] = new Source( imageArray );
+
+				} else {
+
+					// load single image
+
+					const deserializedImage = deserializeImage( image.url );
+					images[ image.uuid ] = new Source( deserializedImage );
+
+
+				}
+
+			}
+
+		}
+
+		return images;
+
+	}
