@@ -1,0 +1,101 @@
+import openfl.display.DisplayObject;
+import openfl.display.IBitmapDrawable;
+import openfl.events.EventDispatcher;
+import openfl.events.IEventDispatcher;
+import js.Browser;
+
+class MeshStandardMaterial extends Material {
+    public var isMeshStandardMaterial:Bool;
+    public var defines:Map<String, String>;
+    public var type:String;
+    public var color:Color;
+    public var roughness:Float;
+    public var metalness:Float;
+    public var map:BitmapData;
+    public var lightMap:BitmapData;
+    public var lightMapIntensity:Float;
+    public var aoMap:BitmapData;
+    public var aoMapIntensity:Float;
+    public var emissive:Color;
+    public var emissiveIntensity:Float;
+    public var emissiveMap:BitmapData;
+    public var bumpMap:BitmapData;
+    public var bumpScale:Float;
+    public var normalMap:BitmapData;
+    public var normalMapType:Int;
+    public var normalScale:Vector2;
+    public var displacementMap:BitmapData;
+    public var displacementScale:Float;
+    public var displacementBias:Float;
+    public var roughnessMap:BitmapData;
+    public var metalnessMap:BitmapData;
+    public var alphaMap:BitmapData;
+    public var envMap:BitmapData;
+    public var envMapRotation:Float;
+    public var envMapIntensity:Float;
+    public var wireframe:Bool;
+    public var wireframeLinewidth:Int;
+    public var wireframeLinecap:String;
+    public var wireframeLinejoin:String;
+    public var flatShading:Bool;
+    public var fog:Bool;
+
+    public function new(parameters:Dynamic = null) {
+        super();
+        isMeshStandardMaterial = true;
+        defines = {"STANDARD": ""};
+        type = "MeshStandardMaterial";
+        color = new Color(0xffffff);
+        roughness = 1.0;
+        metalness = 0.0;
+        lightMapIntensity = 1.0;
+        aoMapIntensity = 1.0;
+        emissiveIntensity = 1.0;
+        bumpScale = 1;
+        displacementScale = 1;
+        displacementBias = 0;
+        envMapIntensity = 1.0;
+        wireframeLinewidth = 1;
+        wireframeLinecap = "round";
+        wireframeLinejoin = "round";
+        fog = true;
+        setValues(parameters);
+    }
+
+    public function copy(source:MeshStandardMaterial) : MeshStandardMaterial {
+        super.copy(source);
+        defines = {"STANDARD": ""};
+        color.copy(source.color);
+        roughness = source.roughness;
+        metalness = source.metalness;
+        map = source.map;
+        lightMap = source.lightMap;
+        lightMapIntensity = source.lightMapIntensity;
+        aoMap = source.aoMap;
+        aoMapIntensity = source.aoMapIntensity;
+        emissive.copy(source.emissive);
+        emissiveMap = source.emissiveMap;
+        emissiveIntensity = source.emissiveIntensity;
+        bumpMap = source.bumpMap;
+        bumpScale = source.bumpScale;
+        normalMap = source.normalMap;
+        normalMapType = source.normalMapType;
+        normalScale.copy(source.normalScale);
+        displacementMap = source.displacementMap;
+        displacementScale = source.displacementScale;
+        displacementBias = source.displacementBias;
+        roughnessMap = source.roughnessMap;
+        metalnessMap = source.metalnessMap;
+        alphaMap = source.alphaMap;
+        envMap = source.envMap;
+        envMapRotation = source.envMapRotation;
+        envMapIntensity = source.envMapIntensity;
+        wireframe = source.wireframe;
+        wireframeLinewidth = source.wireframeLinewidth;
+        wireframeLinecap = source.wireframeLinecap;
+        wireframeLinejoin = source.wireframeLinejoin;
+        flatShading = source.flatShading;
+        fog = source.fog;
+        return this;
+    }
+}

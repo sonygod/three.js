@@ -1,0 +1,34 @@
+package three.shader;
+
+import haxe.extern.EitherType;
+
+class AOMapFragmentShader {
+    static public function shader() : String {
+        return '
+#ifdef USE_AOMAP
+
+    // reads channel R, compatible with a combined OcclusionRoughnessMetallic (RGB) texture
+    float ambientOcclusion = (texture2D(aoMap, vAoMapUv).r - 1.0) * aoMapIntensity + 1.0;
+
+    reflectedLight.indirectDiffuse *= ambientOcclusion;
+
+    #if defined(USE_CLEARCOAT) 
+    clearcoatSpecularIndirect *= ambientOcclusion;
+    #end
+
+    #if defined(USE_SHEEN) 
+    sheenSpecularIndirect *= ambientOcclusion;
+    #end
+
+    #if defined(USE_ENVMAP) && defined(STANDARD)
+
+    float dotNV = saturate(dot(geometryNormal, geometryViewDir));
+
+    reflectedLight.indirectSpecular *= computeSpecularOcclusion(dotNV, ambientOcclusion, material.roughness);
+
+    #end
+
+#endif
+';
+    }
+}
