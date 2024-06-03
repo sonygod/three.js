@@ -1,0 +1,230 @@
+class Constants {
+
+  public static var REVISION : String = "165dev";
+
+  public static enum MOUSE {
+    LEFT = 0;
+    MIDDLE = 1;
+    RIGHT = 2;
+    ROTATE = 0;
+    DOLLY = 1;
+    PAN = 2;
+  }
+
+  public static enum TOUCH {
+    ROTATE = 0;
+    PAN = 1;
+    DOLLY_PAN = 2;
+    DOLLY_ROTATE = 3;
+  }
+
+  public static var CullFaceNone : Int = 0;
+  public static var CullFaceBack : Int = 1;
+  public static var CullFaceFront : Int = 2;
+  public static var CullFaceFrontBack : Int = 3;
+  public static var BasicShadowMap : Int = 0;
+  public static var PCFShadowMap : Int = 1;
+  public static var PCFSoftShadowMap : Int = 2;
+  public static var VSMShadowMap : Int = 3;
+  public static var FrontSide : Int = 0;
+  public static var BackSide : Int = 1;
+  public static var DoubleSide : Int = 2;
+  public static var NoBlending : Int = 0;
+  public static var NormalBlending : Int = 1;
+  public static var AdditiveBlending : Int = 2;
+  public static var SubtractiveBlending : Int = 3;
+  public static var MultiplyBlending : Int = 4;
+  public static var CustomBlending : Int = 5;
+  public static var AddEquation : Int = 100;
+  public static var SubtractEquation : Int = 101;
+  public static var ReverseSubtractEquation : Int = 102;
+  public static var MinEquation : Int = 103;
+  public static var MaxEquation : Int = 104;
+  public static var ZeroFactor : Int = 200;
+  public static var OneFactor : Int = 201;
+  public static var SrcColorFactor : Int = 202;
+  public static var OneMinusSrcColorFactor : Int = 203;
+  public static var SrcAlphaFactor : Int = 204;
+  public static var OneMinusSrcAlphaFactor : Int = 205;
+  public static var DstAlphaFactor : Int = 206;
+  public static var OneMinusDstAlphaFactor : Int = 207;
+  public static var DstColorFactor : Int = 208;
+  public static var OneMinusDstColorFactor : Int = 209;
+  public static var SrcAlphaSaturateFactor : Int = 210;
+  public static var ConstantColorFactor : Int = 211;
+  public static var OneMinusConstantColorFactor : Int = 212;
+  public static var ConstantAlphaFactor : Int = 213;
+  public static var OneMinusConstantAlphaFactor : Int = 214;
+  public static var NeverDepth : Int = 0;
+  public static var AlwaysDepth : Int = 1;
+  public static var LessDepth : Int = 2;
+  public static var LessEqualDepth : Int = 3;
+  public static var EqualDepth : Int = 4;
+  public static var GreaterEqualDepth : Int = 5;
+  public static var GreaterDepth : Int = 6;
+  public static var NotEqualDepth : Int = 7;
+  public static var MultiplyOperation : Int = 0;
+  public static var MixOperation : Int = 1;
+  public static var AddOperation : Int = 2;
+  public static var NoToneMapping : Int = 0;
+  public static var LinearToneMapping : Int = 1;
+  public static var ReinhardToneMapping : Int = 2;
+  public static var CineonToneMapping : Int = 3;
+  public static var ACESFilmicToneMapping : Int = 4;
+  public static var CustomToneMapping : Int = 5;
+  public static var AgXToneMapping : Int = 6;
+  public static var NeutralToneMapping : Int = 7;
+  public static var AttachedBindMode : String = "attached";
+  public static var DetachedBindMode : String = "detached";
+
+  public static var UVMapping : Int = 300;
+  public static var CubeReflectionMapping : Int = 301;
+  public static var CubeRefractionMapping : Int = 302;
+  public static var EquirectangularReflectionMapping : Int = 303;
+  public static var EquirectangularRefractionMapping : Int = 304;
+  public static var CubeUVReflectionMapping : Int = 306;
+  public static var RepeatWrapping : Int = 1000;
+  public static var ClampToEdgeWrapping : Int = 1001;
+  public static var MirroredRepeatWrapping : Int = 1002;
+  public static var NearestFilter : Int = 1003;
+  public static var NearestMipmapNearestFilter : Int = 1004;
+  public static var NearestMipMapNearestFilter : Int = 1004;
+  public static var NearestMipmapLinearFilter : Int = 1005;
+  public static var NearestMipMapLinearFilter : Int = 1005;
+  public static var LinearFilter : Int = 1006;
+  public static var LinearMipmapNearestFilter : Int = 1007;
+  public static var LinearMipMapNearestFilter : Int = 1007;
+  public static var LinearMipmapLinearFilter : Int = 1008;
+  public static var LinearMipMapLinearFilter : Int = 1008;
+  public static var UnsignedByteType : Int = 1009;
+  public static var ByteType : Int = 1010;
+  public static var ShortType : Int = 1011;
+  public static var UnsignedShortType : Int = 1012;
+  public static var IntType : Int = 1013;
+  public static var UnsignedIntType : Int = 1014;
+  public static var FloatType : Int = 1015;
+  public static var HalfFloatType : Int = 1016;
+  public static var UnsignedShort4444Type : Int = 1017;
+  public static var UnsignedShort5551Type : Int = 1018;
+  public static var UnsignedInt248Type : Int = 1020;
+  public static var UnsignedInt5999Type : Int = 35902;
+  public static var AlphaFormat : Int = 1021;
+  public static var RGBFormat : Int = 1022;
+  public static var RGBAFormat : Int = 1023;
+  public static var LuminanceFormat : Int = 1024;
+  public static var LuminanceAlphaFormat : Int = 1025;
+  public static var DepthFormat : Int = 1026;
+  public static var DepthStencilFormat : Int = 1027;
+  public static var RedFormat : Int = 1028;
+  public static var RedIntegerFormat : Int = 1029;
+  public static var RGFormat : Int = 1030;
+  public static var RGIntegerFormat : Int = 1031;
+  public static var RGBAIntegerFormat : Int = 1033;
+
+  public static var RGB_S3TC_DXT1_Format : Int = 33776;
+  public static var RGBA_S3TC_DXT1_Format : Int = 33777;
+  public static var RGBA_S3TC_DXT3_Format : Int = 33778;
+  public static var RGBA_S3TC_DXT5_Format : Int = 33779;
+  public static var RGB_PVRTC_4BPPV1_Format : Int = 35840;
+  public static var RGB_PVRTC_2BPPV1_Format : Int = 35841;
+  public static var RGBA_PVRTC_4BPPV1_Format : Int = 35842;
+  public static var RGBA_PVRTC_2BPPV1_Format : Int = 35843;
+  public static var RGB_ETC1_Format : Int = 36196;
+  public static var RGB_ETC2_Format : Int = 37492;
+  public static var RGBA_ETC2_EAC_Format : Int = 37496;
+  public static var RGBA_ASTC_4x4_Format : Int = 37808;
+  public static var RGBA_ASTC_5x4_Format : Int = 37809;
+  public static var RGBA_ASTC_5x5_Format : Int = 37810;
+  public static var RGBA_ASTC_6x5_Format : Int = 37811;
+  public static var RGBA_ASTC_6x6_Format : Int = 37812;
+  public static var RGBA_ASTC_8x5_Format : Int = 37813;
+  public static var RGBA_ASTC_8x6_Format : Int = 37814;
+  public static var RGBA_ASTC_8x8_Format : Int = 37815;
+  public static var RGBA_ASTC_10x5_Format : Int = 37816;
+  public static var RGBA_ASTC_10x6_Format : Int = 37817;
+  public static var RGBA_ASTC_10x8_Format : Int = 37818;
+  public static var RGBA_ASTC_10x10_Format : Int = 37819;
+  public static var RGBA_ASTC_12x10_Format : Int = 37820;
+  public static var RGBA_ASTC_12x12_Format : Int = 37821;
+  public static var RGBA_BPTC_Format : Int = 36492;
+  public static var RGB_BPTC_SIGNED_Format : Int = 36494;
+  public static var RGB_BPTC_UNSIGNED_Format : Int = 36495;
+  public static var RED_RGTC1_Format : Int = 36283;
+  public static var SIGNED_RED_RGTC1_Format : Int = 36284;
+  public static var RED_GREEN_RGTC2_Format : Int = 36285;
+  public static var SIGNED_RED_GREEN_RGTC2_Format : Int = 36286;
+  public static var LoopOnce : Int = 2200;
+  public static var LoopRepeat : Int = 2201;
+  public static var LoopPingPong : Int = 2202;
+  public static var InterpolateDiscrete : Int = 2300;
+  public static var InterpolateLinear : Int = 2301;
+  public static var InterpolateSmooth : Int = 2302;
+  public static var ZeroCurvatureEnding : Int = 2400;
+  public static var ZeroSlopeEnding : Int = 2401;
+  public static var WrapAroundEnding : Int = 2402;
+  public static var NormalAnimationBlendMode : Int = 2500;
+  public static var AdditiveAnimationBlendMode : Int = 2501;
+  public static var TrianglesDrawMode : Int = 0;
+  public static var TriangleStripDrawMode : Int = 1;
+  public static var TriangleFanDrawMode : Int = 2;
+  public static var BasicDepthPacking : Int = 3200;
+  public static var RGBADepthPacking : Int = 3201;
+  public static var TangentSpaceNormalMap : Int = 0;
+  public static var ObjectSpaceNormalMap : Int = 1;
+
+  // Color space string identifiers, matching CSS Color Module Level 4 and WebGPU names where available.
+  public static var NoColorSpace : String = "";
+  public static var SRGBColorSpace : String = "srgb";
+  public static var LinearSRGBColorSpace : String = "srgb-linear";
+  public static var DisplayP3ColorSpace : String = "display-p3";
+  public static var LinearDisplayP3ColorSpace : String = "display-p3-linear";
+
+  public static var LinearTransfer : String = "linear";
+  public static var SRGBTransfer : String = "srgb";
+
+  public static var Rec709Primaries : String = "rec709";
+  public static var P3Primaries : String = "p3";
+
+  public static var ZeroStencilOp : Int = 0;
+  public static var KeepStencilOp : Int = 7680;
+  public static var ReplaceStencilOp : Int = 7681;
+  public static var IncrementStencilOp : Int = 7682;
+  public static var DecrementStencilOp : Int = 7683;
+  public static var IncrementWrapStencilOp : Int = 34055;
+  public static var DecrementWrapStencilOp : Int = 34056;
+  public static var InvertStencilOp : Int = 5386;
+
+  public static var NeverStencilFunc : Int = 512;
+  public static var LessStencilFunc : Int = 513;
+  public static var EqualStencilFunc : Int = 514;
+  public static var LessEqualStencilFunc : Int = 515;
+  public static var GreaterStencilFunc : Int = 516;
+  public static var NotEqualStencilFunc : Int = 517;
+  public static var GreaterEqualStencilFunc : Int = 518;
+  public static var AlwaysStencilFunc : Int = 519;
+
+  public static var NeverCompare : Int = 512;
+  public static var LessCompare : Int = 513;
+  public static var EqualCompare : Int = 514;
+  public static var LessEqualCompare : Int = 515;
+  public static var GreaterCompare : Int = 516;
+  public static var NotEqualCompare : Int = 517;
+  public static var GreaterEqualCompare : Int = 518;
+  public static var AlwaysCompare : Int = 519;
+
+  public static var StaticDrawUsage : Int = 35044;
+  public static var DynamicDrawUsage : Int = 35048;
+  public static var StreamDrawUsage : Int = 35040;
+  public static var StaticReadUsage : Int = 35045;
+  public static var DynamicReadUsage : Int = 35049;
+  public static var StreamReadUsage : Int = 35041;
+  public static var StaticCopyUsage : Int = 35046;
+  public static var DynamicCopyUsage : Int = 35050;
+  public static var StreamCopyUsage : Int = 35042;
+
+  public static var GLSL1 : String = "100";
+  public static var GLSL3 : String = "300 es";
+
+  public static var WebGLCoordinateSystem : Int = 2000;
+  public static var WebGPUCoordinateSystem : Int = 2001;
+}
